@@ -49,8 +49,15 @@ class MCPClient:
         # 1. Call `await self.session.list_tools()` and assign to `tools`
         # 2. Return list with dicts with tool schemas. It should be provided according to DIAL specification
         #    https://dialx.ai/dial_api#operation/sendChatCompletionRequest (request -> tools)
-        tools = await self.session.list_tools()
-        return [tool.schema() for tool in tools]
+        tools_result = await self.session.list_tools()
+        tools = tools_result.tools
+
+        print(f"Fetched {len(tools)} tools from MCP server.")
+        print("Tools details:")
+        for tool in tools:
+            print(tool)
+
+        return [tool.inputSchema for tool in tools]
 
     async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> Any:
         """Call a specific tool on the MCP server"""
