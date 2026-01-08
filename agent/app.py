@@ -61,6 +61,10 @@ async def main():
 
         # 6. Add to messages Prompts from MCP server as User messages
         prompts: list[Prompt] = await mcp_client.get_prompts()
+        print("\nAvailable MCP Prompts:")
+        for prompt in prompts:
+            print(prompt)
+
         for prompt in prompts:
             prompt_content = await mcp_client.get_prompt(prompt.name)
             messages.append(Message(role=Role.USER, content=prompt_content))
