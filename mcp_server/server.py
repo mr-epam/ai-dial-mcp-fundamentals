@@ -34,7 +34,7 @@ user_client = UserClient()
     description="Get user information by user ID from User Service"
 )
 async def get_user_by_id(user_id: int) -> str:
-    return await user_client.get_user_by_id(user_id)
+    return await user_client.get_user(user_id)
 
 @mcp.tool(
     description="Delete user by user ID from User Service"
