@@ -52,12 +52,23 @@ class MCPClient:
         tools_result = await self.session.list_tools()
         tools = tools_result.tools
 
-        print(f"Fetched {len(tools)} tools from MCP server.")
-        print("Tools details:")
-        for tool in tools:
-            print(tool)
+        # print(f"Fetched {len(tools)} tools from MCP server.")
+        # print("Tools details:")
+        # for tool in tools:
+        #     print(tool)
 
-        return [tool.inputSchema for tool in tools]
+        # return [tool.inputSchema for tool in tools]
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.inputSchema
+                }
+            }
+            for tool in tools
+        ]
 
     async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> Any:
         """Call a specific tool on the MCP server"""
@@ -71,7 +82,7 @@ class MCPClient:
         # 4. If `isinstance(content, TextContent)` -> return content.text
         #    else -> return content
         tool_result: CallToolResult = await self.session.call_tool(tool_name, tool_args)
-        content = tool_result.contents[0]
+        content = tool_result.content[0]
         print(f"    ⚙️: {content}\n")
         if isinstance(content, TextContent):
             return content.text
