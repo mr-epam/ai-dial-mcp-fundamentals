@@ -23,14 +23,23 @@ class MCPClient:
         # 4. Call `await self._session_context.__aenter__()` and assign it to `self.session`
         # 5. Call `self.session.initialize()`, and print its result (to check capabilities of MCP server later)
         # 6. return self
-        raise NotImplementedError()
+        self._streams_context = streamablehttp_client(self.mcp_server_url)
+        read_stream, write_stream, _ = await self._streams_context.__aenter__()
+        self._session_context = ClientSession(read_stream, write_stream)
+        self.session = await self._session_context.__aenter__()
+        capabilities = await self.session.initialize()
+        print(f"MCP Server Capabilities: {capabilities}")
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         #TODO:
         # This is shutdown method.
         # If session is present and session context is present as well then shutdown the session context (__aexit__ method with params)
         # If streams context is present then shutdown the streams context (__aexit__ method with params)
-        raise NotImplementedError()
+        if self.session and self._session_context:
+            await self._session_context.__aexit__(exc_type, exc_val, exc_tb)
+        if self._streams_context:
+            await self._streams_context.__aexit__(exc_type, exc_val, exc_tb)
 
     async def get_tools(self) -> list[dict[str, Any]]:
         """Get available tools from MCP server"""
@@ -40,7 +49,8 @@ class MCPClient:
         # 1. Call `await self.session.list_tools()` and assign to `tools`
         # 2. Return list with dicts with tool schemas. It should be provided according to DIAL specification
         #    https://dialx.ai/dial_api#operation/sendChatCompletionRequest (request -> tools)
-        raise NotImplementedError()
+        tools = await self.session.list_tools()
+        return [tool.schema() for tool in tools]
 
     async def call_tool(self, tool_name: str, tool_args: dict[str, Any]) -> Any:
         """Call a specific tool on the MCP server"""
@@ -53,7 +63,13 @@ class MCPClient:
         # 3. print(f"    ⚙️: {content}\n")
         # 4. If `isinstance(content, TextContent)` -> return content.text
         #    else -> return content
-        raise NotImplementedError()
+        tool_result: CallToolResult = await self.session.call_tool(tool_name, tool_args)
+        content = tool_result.contents[0]
+        print(f"    ⚙️: {content}\n")
+        if isinstance(content, TextContent):
+            return content.text
+        else:
+            return content
 
     async def get_resources(self) -> list[Resource]:
         """Get available resources from MCP server"""
@@ -62,7 +78,12 @@ class MCPClient:
         #TODO:
         # Wrap into try/except (not all MCP servers have resources), get `list_resources` (it is async) and resources
         # from it. In case of error print error and return an empty array
-        raise NotImplementedError()
+        try:
+            resources_result: ReadResourceResult = await self.session.list_resources()
+            return resources_result.resources
+        except Exception as e:
+            print(f"Error fetching resources: {e}")
+            return []
 
     async def get_resource(self, uri: AnyUrl) -> str:
         """Get specific resource content"""
@@ -77,7 +98,14 @@ class MCPClient:
         # ---
         # Optional: Later on in app.py you can try to fetch resource and print it (in our case it is image/png provided
         # as bytes, but you can return on the server side some dict just to check how resources are looks like).
-        raise NotImplementedError()
+        resource_result: ReadResourceResult = await self.session.read_resource(uri)
+        content = resource_result.contents[0]
+        if isinstance(content, TextResourceContents):
+            return content.text
+        elif isinstance(content, BlobResourceContents):
+            return content.blob
+        else:
+            raise RuntimeError("Unknown resource content type")
 
     async def get_prompts(self) -> list[Prompt]:
         """Get available prompts from MCP server"""
@@ -86,7 +114,12 @@ class MCPClient:
         #TODO:
         # Wrap into try/except (not all MCP servers have prompts), get `list_prompts` (it is async) and prompts
         # from it. In case of error print error and return an empty array
-        raise NotImplementedError()
+        try:
+            prompts_result: GetPromptResult = await self.session.list_prompts()
+            return prompts_result.prompts
+        except Exception as e:
+            print(f"Error fetching prompts: {e}")
+            return []
 
     async def get_prompt(self, name: str) -> str:
         """Get specific prompt content"""
@@ -101,4 +134,12 @@ class MCPClient:
         #       - if `message` has attribute 'content' and is instance of `str` then concat `combined_content` with
         #          with `message.content + "\n"`
         # 4. Return `combined_content`
-        raise NotImplementedError()
+        prompt_result: GetPromptResult = await self.session.get_prompt(name)
+        combined_content = ""
+        for message in prompt_result.messages:
+            if hasattr(message, 'content'):
+                if isinstance(message.content, TextContent):
+                    combined_content += message.content.text + "\n"
+                elif isinstance(message.content, str):
+                    combined_content += message.content + "\n"
+        return combined_content
