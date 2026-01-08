@@ -95,7 +95,8 @@ class DialClient:
 
             try:
                 tool_args = json.loads(tool_args_json) if tool_args_json else {}
-                tool_response = await self.mcp_client.call_tool(tool_name, **tool_args)
+                tool_response = await self.mcp_client.call_tool(tool_name, tool_args)
+                print("Tool response: ", tool_response)
 
                 tool_message = Message(
                     role=Role.TOOL,
@@ -104,6 +105,7 @@ class DialClient:
                 )
             except Exception as e:
                 error_message = f"Error calling tool '{tool_name}': {str(e)}"
+                print("Error calling tool: ", error_message)
                 tool_message = Message(
                     role=Role.TOOL,
                     content=error_message,
