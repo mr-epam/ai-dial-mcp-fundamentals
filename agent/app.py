@@ -17,6 +17,8 @@ from agent.prompts import SYSTEM_PROMPT
 DIAL_ENDPOINT = os.getenv("DIAL_API_ENDPOINT", "http://localhost:8000/v1/chat/completions")
 DIAL_API_KEY = os.getenv("DIAL_API_KEY", "your_api_key_here")
 
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8005/mcp")
+
 async def main():
     #TODO:
     # 1. Create MCP client and open connection to the MCP server (use `async with {YOUR_MCP_CLIENT} as mcp_client`),
@@ -27,7 +29,7 @@ async def main():
     # 5. Create list with messages and add there SYSTEM_PROMPT with instructions to LLM
     # 6. Add to messages Prompts from MCP server as User messages
     # 7. Create console chat (infinite loop + ability to exit from chat + preserve message history after the call to dial client)
-    async with MCPClient(mcp_server_url="http://localhost:8005/mcp") as mcp_client:
+    async with MCPClient(mcp_server_url=MCP_SERVER_URL) as mcp_client:
         # 2. Get Available MCP Resources and print them
         resources: list[Resource] = await mcp_client.get_resources()
         print("Available MCP Resources:")
@@ -39,6 +41,10 @@ async def main():
         print("\nAvailable MCP Tools:")
         for tool in tools:
             print(tool)
+
+        print("DIAL: ", DIAL_ENDPOINT)
+        # print("DIAL API KEY: ", DIAL_API_KEY)
+        print("MCP SERVER URL: ", MCP_SERVER_URL)
 
         # 4. Create DialClient
         dial_client = DialClient(
@@ -70,9 +76,6 @@ async def main():
             messages.append(Message(role=Role.USER, content=user_input))
             ai_message: Message = await dial_client.get_completion(messages)
             messages.append(ai_message)
-
-
-    raise NotImplementedError()
 
 
 if __name__ == "__main__":
