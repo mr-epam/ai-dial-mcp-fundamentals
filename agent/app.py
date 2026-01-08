@@ -24,6 +24,46 @@ async def main():
     # 5. Create list with messages and add there SYSTEM_PROMPT with instructions to LLM
     # 6. Add to messages Prompts from MCP server as User messages
     # 7. Create console chat (infinite loop + ability to exit from chat + preserve message history after the call to dial client)
+    async with MCPClient(mcp_server_url="http://localhost:8005/mcp") as mcp_client:
+        # 2. Get Available MCP Resources and print them
+        resources: list[Resource] = await mcp_client.get_resources()
+        print("Available MCP Resources:")
+        for resource in resources:
+            print(resource)
+
+        # 3. Get Available MCP Tools, assign to `tools` variable, print tool as well
+        tools = await mcp_client.get_tools()
+        print("\nAvailable MCP Tools:")
+        for tool in tools:
+            print(tool)
+
+        # 4. Create DialClient
+        dial_client = DialClient(mcp_client=mcp_client, tools=tools)
+
+        # 5. Create list with messages and add there SYSTEM_PROMPT with instructions to LLM
+        messages: list[Message] = [
+            Message(role=Role.SYSTEM, content=SYSTEM_PROMPT)
+        ]
+
+        # 6. Add to messages Prompts from MCP server as User messages
+        prompts: list[Prompt] = await mcp_client.get_prompts()
+        for prompt in prompts:
+            prompt_content = await mcp_client.get_prompt(prompt.name)
+            messages.append(Message(role=Role.USER, content=prompt_content))
+
+        # 7. Create console chat (infinite loop + ability to exit from chat + preserve message history after the call to dial client)
+        print("\nYou can start chatting with the AI assistant now! Type 'exit' to quit.")
+        while True:
+            user_input = input("👤: ")
+            if user_input.lower() == "exit":
+                print("Exiting chat. Goodbye!")
+                break
+
+            messages.append(Message(role=Role.USER, content=user_input))
+            ai_message: Message = await dial_client.get_completion(messages)
+            messages.append(ai_message)
+
+
     raise NotImplementedError()
 
 
