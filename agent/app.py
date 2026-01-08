@@ -14,6 +14,9 @@ from agent.prompts import SYSTEM_PROMPT
 # https://remote.mcpservers.org/fetch/mcp
 # Pay attention that `fetch` doesn't have resources and prompts
 
+DIAL_ENDPOINT = os.getenv("DIAL_API_ENDPOINT", "http://localhost:8000/v1/chat/completions")
+DIAL_API_KEY = os.getenv("DIAL_API_KEY", "your_api_key_here")
+
 async def main():
     #TODO:
     # 1. Create MCP client and open connection to the MCP server (use `async with {YOUR_MCP_CLIENT} as mcp_client`),
@@ -38,7 +41,12 @@ async def main():
             print(tool)
 
         # 4. Create DialClient
-        dial_client = DialClient(mcp_client=mcp_client, tools=tools)
+        dial_client = DialClient(
+            endpoint=DIAL_ENDPOINT,
+            api_key=DIAL_API_KEY,
+            mcp_client=mcp_client, 
+            tools=tools
+            )
 
         # 5. Create list with messages and add there SYSTEM_PROMPT with instructions to LLM
         messages: list[Message] = [
